@@ -152,9 +152,10 @@ class DockerRuntimeBuilder(RuntimeBuilder):
 
         if extra_build_args:
             buildx_cmd.extend(extra_build_args)
-
+        buildx_cmd.append('--network=host')
         buildx_cmd.append(path)  # must be last!
-
+        env = os.environ.copy()
+        env['DOCKER_BUILDKIT'] = '1'
         self.rolling_logger.start(
             f'================ {buildx_cmd[0].upper()} BUILD STARTED ================'
         )
@@ -174,6 +175,7 @@ class DockerRuntimeBuilder(RuntimeBuilder):
                 stderr=subprocess.STDOUT,
                 universal_newlines=True,
                 bufsize=1,
+                env=env,
             )
 
             output_lines = []
