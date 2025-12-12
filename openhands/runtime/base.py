@@ -30,6 +30,7 @@ from openhands.events.action import (
     BrowseInteractiveAction,
     BrowseURLAction,
     CmdRunAction,
+    ParallelCmdRunAction,
     FileEditAction,
     FileReadAction,
     FileWriteAction,
@@ -41,6 +42,7 @@ from openhands.events.event import Event
 from openhands.events.observation import (
     AgentThinkObservation,
     CmdOutputObservation,
+    ParallelCmdOutputObservation,
     ErrorObservation,
     FileReadObservation,
     NullObservation,
@@ -1078,6 +1080,10 @@ fi
     def run(self, action: CmdRunAction) -> Observation:
         pass
 
+    @abstractmethod
+    def run_parallel(self, action: ParallelCmdRunAction) -> Observation:
+        pass
+    
     @abstractmethod
     def run_ipython(self, action: IPythonRunCellAction) -> Observation:
         pass

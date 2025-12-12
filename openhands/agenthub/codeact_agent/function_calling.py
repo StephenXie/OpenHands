@@ -17,6 +17,7 @@ from openhands.agenthub.codeact_agent.tools import (
     LLMBasedFileEditTool,
     ThinkTool,
     create_cmd_run_tool,
+    create_parallel_cmd_run_tool,
     create_str_replace_editor_tool,
 )
 from openhands.agenthub.codeact_agent.tools.security_utils import RISK_LEVELS
@@ -33,6 +34,7 @@ from openhands.events.action import (
     AgentThinkAction,
     BrowseInteractiveAction,
     CmdRunAction,
+    ParallelCmdRunAction,
     FileEditAction,
     FileReadAction,
     IPythonRunCellAction,
@@ -121,6 +123,40 @@ def response_to_actions(
                         ) from e
                 set_security_risk(action, arguments)
 
+            # ================================================
+            # ParallelCmdRunTool (Parallel Bash)
+            # ================================================
+            elif tool_call.function.name == create_parallel_cmd_run_tool()['function']['name']:
+                if 'commands' not in arguments:
+                    raise FunctionCallValidationError(
+                        f'Missing required argument "commands" in tool call {tool_call.function.name}'
+                    )
+                commands = arguments['commands']
+                if not isinstance(commands, list):
+                    raise FunctionCallValidationError(
+                        f'Argument "commands" must be a list of strings, got {type(commands)}'
+                    )
+                if len(commands) == 0:
+                    raise FunctionCallValidationError(
+                        'Argument "commands" must contain at least one command'
+                    )
+
+                action = ParallelCmdRunAction(
+                    commands=commands,
+                    max_concurrency=arguments.get('max_concurrency', 10),
+                    cwd=arguments.get('cwd'),
+                )
+
+                if 'timeout_per_command' in arguments:
+                    try:
+                        action.timeout_per_command = float(arguments['timeout_per_command'])
+                    except ValueError as e:
+                        raise FunctionCallValidationError(
+                            f"Invalid float passed to 'timeout_per_command' argument: {arguments['timeout_per_command']}"
+                        ) from e
+
+                set_security_risk(action, arguments)
+                
             # ================================================
             # IPythonTool (Jupyter)
             # ================================================

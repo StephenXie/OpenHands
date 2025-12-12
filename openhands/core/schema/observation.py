@@ -17,6 +17,10 @@ class ObservationType(str, Enum):
     RUN = 'run'
     """The output of a command
     """
+    
+    RUN_PARALLEL = 'run_parallel'
+    """Output of multiple commands run in parallel
+    """
 
     RUN_IPYTHON = 'run_ipython'
     """Runs a IPython cell.

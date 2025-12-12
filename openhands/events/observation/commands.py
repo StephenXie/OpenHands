@@ -203,6 +203,135 @@ class CmdOutputObservation(Observation):
             ret += f'\n[Command finished with exit code {self.metadata.exit_code}]'
         return ret
 
+@dataclass
+class ParallelCmdResult:
+    """Result of a single command in a parallel execution."""
+    command: str
+    content: str
+    metadata: CmdOutputMetadata = field(default_factory=CmdOutputMetadata)
+
+    def __init__(
+        self,
+        command: str,
+        content: str,
+        metadata: dict[str, Any] | CmdOutputMetadata | None = None,
+        **kwargs: Any,
+    ) -> None:
+        self.command = command
+        self.content = content
+        if isinstance(metadata, dict):
+            self.metadata = CmdOutputMetadata(**metadata)
+        else:
+            self.metadata = metadata or CmdOutputMetadata()
+
+        if 'exit_code' in kwargs:
+            self.metadata.exit_code = kwargs['exit_code']
+        if 'pid' in kwargs:
+            self.metadata.pid = kwargs['pid']
+
+    @property
+    def exit_code(self) -> int:
+        return self.metadata.exit_code
+
+    @property
+    def error(self) -> bool:
+        return self.exit_code != 0
+
+    @property
+    def success(self) -> bool:
+        return not self.error
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            'command': self.command,
+            'content': self.content,
+            'metadata': self.metadata.model_dump(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> 'ParallelCmdResult':
+        return cls(
+            command=data['command'],
+            content=data['content'],
+            metadata=data.get('metadata'),
+        )
+
+
+@dataclass
+class ParallelCmdOutputObservation(Observation):
+    """Output of multiple commands run in parallel."""
+
+    results: list[ParallelCmdResult] = field(default_factory=list)
+    observation: str = ObservationType.RUN_PARALLEL
+    hidden: bool = False
+
+    def __init__(
+        self,
+        content: str,
+        results: list[ParallelCmdResult | dict[str, Any]] | None = None,
+        observation: str = ObservationType.RUN_PARALLEL,
+        hidden: bool = False,
+        **kwargs: Any,
+    ) -> None:
+        # Truncate content before passing it to parent
+        truncate = not hidden
+        if truncate:
+            content = CmdOutputObservation._maybe_truncate(content)
+
+        super().__init__(content)
+
+        self.observation = observation
+        self.hidden = hidden
+
+        self.results = []
+        if results:
+            for r in results:
+                if isinstance(r, dict):
+                    self.results.append(ParallelCmdResult.from_dict(r))
+                else:
+                    self.results.append(r)
+
+    @property
+    def error(self) -> bool:
+        return any(r.error for r in self.results)
+
+    @property
+    def success(self) -> bool:
+        return all(r.success for r in self.results)
+
+    @property
+    def message(self) -> str:
+        success_count = sum(1 for r in self.results if r.success)
+        return f'Executed {len(self.results)} commands: {success_count} succeeded, {len(self.results) - success_count} failed'
+
+    def __str__(self) -> str:
+        ret = f'**ParallelCmdOutputObservation (source={self.source}, {len(self.results)} results)**\n'
+        ret += '--BEGIN AGENT OBSERVATION--\n'
+        ret += f'{self.to_agent_observation()}\n'
+        ret += '--END AGENT OBSERVATION--'
+        return ret
+
+    def to_agent_observation(self) -> str:
+        parts = []
+        for i, result in enumerate(self.results, 1):
+            parts.append(f'=== Command {i}: {result.command} ===')
+            parts.append(f'{result.metadata.prefix}{result.content}{result.metadata.suffix}')
+            if result.metadata.working_dir:
+                parts.append(f'[Working directory: {result.metadata.working_dir}]')
+            parts.append(f'[Exit code: {result.exit_code}]')
+        return '\n'.join(parts)
+
+    def get_results_by_exit_code(self, exit_code: int) -> list[ParallelCmdResult]:
+        """Filter results by exit code."""
+        return [r for r in self.results if r.exit_code == exit_code]
+
+    def get_successful_results(self) -> list[ParallelCmdResult]:
+        """Get all results that completed successfully (exit_code == 0)."""
+        return self.get_results_by_exit_code(0)
+
+    def get_failed_results(self) -> list[ParallelCmdResult]:
+        """Get all results that failed (exit_code != 0)."""
+        return [r for r in self.results if r.exit_code != 0]
 
 @dataclass
 class IPythonRunCellObservation(Observation):

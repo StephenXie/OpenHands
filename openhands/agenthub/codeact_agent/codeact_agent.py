@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 import openhands.agenthub.codeact_agent.function_calling as codeact_function_calling
 from openhands.agenthub.codeact_agent.tools.bash import create_cmd_run_tool
+from openhands.agenthub.codeact_agent.tools.parallel_bash import create_parallel_cmd_run_tool
 from openhands.agenthub.codeact_agent.tools.browser import BrowserTool
 from openhands.agenthub.codeact_agent.tools.condensation_request import (
     CondensationRequestTool,
@@ -125,6 +126,8 @@ class CodeActAgent(Agent):
         tools = []
         if self.config.enable_cmd:
             tools.append(create_cmd_run_tool(use_short_description=use_short_tool_desc))
+        if self.config.enable_parallel_cmd:
+            tools.append(create_parallel_cmd_run_tool(use_short_description=use_short_tool_desc))
         if self.config.enable_think:
             tools.append(ThinkTool)
         if self.config.enable_finish:

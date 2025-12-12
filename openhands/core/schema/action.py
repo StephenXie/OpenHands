@@ -30,6 +30,10 @@ class ActionType(str, Enum):
     """Runs a command.
     """
 
+    RUN_PARALLEL = 'run_parallel'
+    """Runs multiple commands in parallel.
+    """
+    
     RUN_IPYTHON = 'run_ipython'
     """Runs a IPython cell.
     """

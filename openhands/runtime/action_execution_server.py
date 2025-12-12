@@ -17,7 +17,7 @@ import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from zipfile import ZipFile
-
+import asyncio
 import puremagic
 from binaryornot.check import is_binary
 from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile
@@ -42,6 +42,7 @@ from openhands.events.action import (
     BrowseInteractiveAction,
     BrowseURLAction,
     CmdRunAction,
+    ParallelCmdRunAction,
     FileEditAction,
     FileReadAction,
     FileWriteAction,
@@ -50,6 +51,8 @@ from openhands.events.action import (
 from openhands.events.event import FileEditSource, FileReadSource
 from openhands.events.observation import (
     CmdOutputObservation,
+    ParallelCmdOutputObservation,
+    ParallelCmdResult,
     ErrorObservation,
     FileDownloadObservation,
     FileEditObservation,
@@ -394,6 +397,65 @@ class ActionExecutor:
             return obs
         except Exception as e:
             logger.exception(f'Error running command: {e}')
+            return ErrorObservation(str(e))
+    async def run_parallel(
+        self, action: ParallelCmdRunAction
+    ) -> ParallelCmdOutputObservation | ErrorObservation:
+        """Execute multiple commands in parallel."""
+        try:
+            semaphore = asyncio.Semaphore(action.max_concurrency)
+
+            async def execute_single_command(cmd: str) -> ParallelCmdResult:
+                async with semaphore:
+                    try:
+                        # Create a temporary CmdRunAction for each command
+                        single_action = CmdRunAction(
+                            command=cmd,
+                            is_static=True,  # Run in separate process
+                            cwd=action.cwd,
+                        )
+                        if action.timeout_per_command:
+                            single_action.set_hard_timeout(action.timeout_per_command, blocking=True)
+
+                        # Execute using existing bash session mechanism
+                        bash_session = self._create_bash_session(action.cwd)
+                        obs = await call_sync_from_async(bash_session.execute, single_action)
+
+                        if isinstance(obs, ErrorObservation):
+                            return ParallelCmdResult(
+                                command=cmd,
+                                content=obs.content,
+                                exit_code=-1,
+                                error=obs.content,
+                            )
+
+                        return ParallelCmdResult(
+                            command=cmd,
+                            content=obs.content,
+                            exit_code=obs.exit_code,
+                        )
+                    except Exception as e:
+                        return ParallelCmdResult(
+                            command=cmd,
+                            content='',
+                            exit_code=-1,
+                            error=str(e),
+                        )
+
+            tasks = [execute_single_command(cmd) for cmd in action.commands]
+            results = await asyncio.gather(*tasks)
+
+            combined_content = '\n'.join(
+                f'=== {r.command} ===\n{r.content}' for r in results
+            )
+
+            return ParallelCmdOutputObservation(
+                content=combined_content,
+                results=list(results),
+            )
+
+        except Exception as e:
+            logger.exception(f'Error running parallel commands: {e}')
             return ErrorObservation(str(e))
 
     async def run_ipython(self, action: IPythonRunCellAction) -> Observation:

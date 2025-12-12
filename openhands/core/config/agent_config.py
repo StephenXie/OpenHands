@@ -33,6 +33,8 @@ class AgentConfig(BaseModel):
     Note: If using CLIRuntime, Jupyter use is not implemented and should be disabled."""
     enable_cmd: bool = Field(default=True)
     """Whether to enable bash tool"""
+    enable_parallel_cmd: bool = Field(default=True)
+    """Whether to enable parallel bash tool for running multiple commands simultaneously"""
     enable_think: bool = Field(default=True)
     """Whether to enable think tool"""
     enable_finish: bool = Field(default=True)

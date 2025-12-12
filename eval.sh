@@ -1,0 +1,10 @@
+./evaluation/benchmarks/swe_bench/scripts/run_infer.sh \
+    llm.qwen3_8b \
+    HEAD \
+    CodeActAgent \
+    20 \
+    100 \
+    1 \
+    princeton-nlp/SWE-bench_Verified \
+    test \
+    > output.log

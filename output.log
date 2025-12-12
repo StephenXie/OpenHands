@@ -1,0 +1,33 @@
+The given hash is equivalent to the current HEAD
+RUN_WITH_BROWSING not specified, use default false
+MODE not specified, use default swe
+No Condenser Config provided via EVAL_CONDENSER, use default (NoOpCondenser).
+RUN_WITH_BROWSING: false
+AGENT: CodeActAgent
+OPENHANDS_VERSION: v0.62.0
+MODEL_CONFIG: llm.qwen3_8b
+DATASET: princeton-nlp/SWE-bench_Verified
+SPLIT: test
+MAX_ITER: 100
+NUM_WORKERS: 1
+COMMIT_HASH: HEAD
+MODE: swe
+EVAL_CONDENSER: 
+USE_HINT_TEXT: false
+N_RUNS not specified, use default 1
+EVAL_NOTE: v0.62.0-no-hint-run_1
+EVAL_LIMIT: 20
+### OUTPUT FILE: evaluation/evaluation_outputs/outputs/princeton-nlp__SWE-bench_Verified-test/CodeActAgent/Qwen3-8B_maxiter_100_N_v0.62.0-no-hint-run_1/output.jsonl ###
+================ DOCKER BUILD STARTED ================
+================ DOCKER BUILD STARTED ================
+================ DOCKER BUILD STARTED ================
+================ DOCKER BUILD STARTED ================
+================ DOCKER BUILD STARTED ================
+================ DOCKER BUILD STARTED ================
+================ DOCKER BUILD STARTED ================
+================ DOCKER BUILD STARTED ================
+================ DOCKER BUILD STARTED ================
+================ DOCKER BUILD STARTED ================
+================ DOCKER BUILD STARTED ================
+================ DOCKER BUILD STARTED ================
+================ DOCKER BUILD STARTED ================

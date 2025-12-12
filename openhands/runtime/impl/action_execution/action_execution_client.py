@@ -25,6 +25,7 @@ from openhands.events.action import (
     BrowseInteractiveAction,
     BrowseURLAction,
     CmdRunAction,
+    ParallelCmdRunAction,
     FileEditAction,
     FileReadAction,
     FileWriteAction,
@@ -342,6 +343,9 @@ class ActionExecutionClient(Runtime):
             return obs
 
     def run(self, action: CmdRunAction) -> Observation:
+        return self.send_action_for_execution(action)
+
+    def run_parallel(self, action: ParallelCmdRunAction) -> Observation:
         return self.send_action_for_execution(action)
 
     def run_ipython(self, action: IPythonRunCellAction) -> Observation:

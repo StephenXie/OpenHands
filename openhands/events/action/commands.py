@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import ClassVar
 
 from openhands.core.schema import ActionType
@@ -38,6 +38,33 @@ class CmdRunAction(Action):
         ret += f'COMMAND:\n{self.command}'
         return ret
 
+@dataclass
+class ParallelCmdRunAction(Action):
+    """Execute multiple commands in parallel."""
+    commands: list[str] = field(default_factory=list)
+    thought: str = ''
+    max_concurrency: int = 10
+    timeout_per_command: float | None = None
+    cwd: str | None = None
+    hidden: bool = False
+    action: str = ActionType.RUN_PARALLEL
+    runnable: ClassVar[bool] = True
+    confirmation_state: ActionConfirmationStatus = ActionConfirmationStatus.CONFIRMED
+    security_risk: ActionSecurityRisk = ActionSecurityRisk.UNKNOWN
+
+    @property
+    def message(self) -> str:
+        commands_str = '; '.join(self.commands)
+        return f'Running {len(self.commands)} commands in parallel: {commands_str}'
+
+    def __str__(self) -> str:
+        ret = f'**ParallelCmdRunAction (source={self.source}, {len(self.commands)} commands)**\n'
+        if self.thought:
+            ret += f'THOUGHT: {self.thought}\n'
+        ret += 'COMMANDS:\n'
+        for i, cmd in enumerate(self.commands, 1):
+            ret += f'  {i}. {cmd}\n'
+        return ret
 
 @dataclass
 class IPythonRunCellAction(Action):
